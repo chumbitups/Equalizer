@@ -21,8 +21,8 @@ enum Slope
 struct ChainSettings
 {
     float peakFreq{ 0 }, peakGainInDecibels{ 0 }, peakQuality{ 1.f };
-    float lowCutFreq{ 0 }, hightCutFreq{ 0 };
-    Slope lowCutSlope { Slope::Slope_12}, hightCutSlope{ Slope::Slope_12 };
+    float lowCutFreq{ 0 }, highCutFreq{ 0 };
+    Slope lowCutSlope { Slope::Slope_12}, highCutSlope{ Slope::Slope_12 };
 };
 
 ChainSettings getChainSettings(juce::AudioProcessorValueTreeState& apvts);
@@ -117,22 +117,27 @@ private:
 		{
 		    case Slope_48:
 		    {
-                update<3>(chain, cutCoefficients);
+                update<3>(chain, coefficients);
 		    }
 			case Slope_36:
 			{
-                update<2>(chain, cutCoefficients);
+                update<2>(chain, coefficients);
 			}
 			case Slope_24:
 			{
-                update<1>(chain, cutCoefficients);
+                update<1>(chain, coefficients);
 			}
 			case Slope_12:
 			{
-                update<0>(chain, cutCoefficients);
+                update<0>(chain, coefficients);
 			}
 		}
     }
+
+    void updateLowCutFilters(const ChainSettings& chainSettings);
+    void updateHighCutFilters(const ChainSettings& chainSettings);
+
+    void updateFilters();
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (EqualizerAudioProcessor)
 };

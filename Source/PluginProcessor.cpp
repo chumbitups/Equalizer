@@ -107,26 +107,7 @@ void EqualizerAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlo
     leftChain.prepare(spec);
     rightChain.prepare(spec);
 
-    auto chainSettings = getChainSettings(apvts);
-
-	updatePeakFilter(chainSettings);
-
-	auto cutCoefficients = juce::dsp::FilterDesign<float>::designIIRHighpassHighOrderButterworthMethod(
-		chainSettings.lowCutFreq,
-		sampleRate,
-		2 * (chainSettings.lowCutSlope + 1));
-
-
-   //Work with coefs on leftLowcut
-
-   auto& leftLowCut = leftChain.get<ChainPositions::LowCut>();
-   updateCutFilter(leftLowCut, cutCoefficients, chainSettings.lowCutSlope);
-
-
-   // Work with coefs on rightLowCut
-
-	auto& rightLowCut = rightChain.get <ChainPositions::LowCut>();
-	updateCutFilter(rightLowCut, cutCoefficients, chainSettings.lowCutSlope);
+    updateFilters();
 }
 
 void EqualizerAudioProcessor::releaseResources()
@@ -176,27 +157,7 @@ void EqualizerAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear (i, 0, buffer.getNumSamples());
 
-	auto chainSettings = getChainSettings(apvts);
-
-	updatePeakFilter(chainSettings);
-
-	auto cutCoefficients = juce::dsp::FilterDesign<float>::designIIRHighpassHighOrderButterworthMethod(
-		chainSettings.lowCutFreq,
-		getSampleRate(),
-		2 * (chainSettings.lowCutSlope + 1));
-
-
-	//Work with coefs on leftLowcut
-
-	auto& leftLowCut = leftChain.get<ChainPositions::LowCut>();
-
-	updateCutFilter(leftLowCut, cutCoefficients, chainSettings.lowCutSlope);
-
-
-	// Work with coefs on rightLowCut
-
-	auto& rightLowCut = rightChain.get <ChainPositions::LowCut>();
-	updateCutFilter(rightLowCut, cutCoefficients, chainSettings.lowCutSlope);
+    updateFilters();
 
     // Stereo input processing
 
@@ -242,12 +203,12 @@ ChainSettings getChainSettings(juce::AudioProcessorValueTreeState& apvts)
     ChainSettings settings;
 
     settings.lowCutFreq = apvts.getRawParameterValue("LowCut Freq")->load();
-    settings.hightCutFreq = apvts.getRawParameterValue("HighCut Freq")->load();
+    settings.highCutFreq = apvts.getRawParameterValue("HighCut Freq")->load();
     settings.peakFreq = apvts.getRawParameterValue("Peak Freq")->load();
     settings.peakGainInDecibels = apvts.getRawParameterValue("Peak Gain")->load();
     settings.peakQuality = apvts.getRawParameterValue("Peak Quality")->load();
     settings.lowCutSlope = static_cast<Slope>(apvts.getRawParameterValue("LowCut Slope")->load());
-    settings.hightCutSlope = static_cast<Slope>(apvts.getRawParameterValue("HighCut Slope")->load());
+    settings.highCutSlope = static_cast<Slope>(apvts.getRawParameterValue("HighCut Slope")->load());
 
     return settings;
 }
@@ -267,6 +228,43 @@ void EqualizerAudioProcessor::updatePeakFilter(const ChainSettings& chainSetting
 void EqualizerAudioProcessor::updateCoefficients(Coefficients& old, const Coefficients& replacements)
 {
 	*old = *replacements;
+}
+
+void EqualizerAudioProcessor::updateLowCutFilters(const ChainSettings& chainSettings)
+{
+    auto cutCoefficients = juce::dsp::FilterDesign<float>::designIIRHighpassHighOrderButterworthMethod(
+        chainSettings.lowCutFreq,
+        getSampleRate(),
+        2 * (chainSettings.lowCutSlope + 1));
+
+    auto& leftLowCut = leftChain.get<ChainPositions::LowCut>();
+    auto& rightLowCut = rightChain.get <ChainPositions::LowCut>();
+
+    updateCutFilter(leftLowCut, cutCoefficients, chainSettings.lowCutSlope);
+    updateCutFilter(rightLowCut, cutCoefficients, chainSettings.lowCutSlope);
+}
+
+void EqualizerAudioProcessor::updateHighCutFilters(const ChainSettings& chainSettings)
+{
+	auto highCutCoefficients = juce::dsp::FilterDesign<float>::designIIRLowpassHighOrderButterworthMethod(
+		chainSettings.highCutFreq,
+		getSampleRate(),
+		2 * (chainSettings.highCutSlope + 1));
+
+	auto& leftHightCut = leftChain.get<ChainPositions::HighCut>();
+	auto& rightHightCut = rightChain.get<ChainPositions::HighCut>();
+
+	updateCutFilter(leftHightCut, highCutCoefficients, chainSettings.highCutSlope);
+	updateCutFilter(rightHightCut, highCutCoefficients, chainSettings.highCutSlope);
+}
+
+void EqualizerAudioProcessor::updateFilters()
+{
+    auto chainSettings = getChainSettings(apvts);
+
+    updateLowCutFilters(chainSettings);
+    updatePeakFilter(chainSettings);
+    updateHighCutFilters(chainSettings);
 }
 
 juce::AudioProcessorValueTreeState::ParameterLayout
