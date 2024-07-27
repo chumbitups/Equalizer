@@ -242,7 +242,7 @@ void EqualizerAudioProcessor::updatePeakFilter(const ChainSettings& chainSetting
 	updateCoefficients(rightChain.get<ChainPositions::Peak>().coefficients, peakCoefficients);
 }
 
-void EqualizerAudioProcessor::updateCoefficients(Coefficients& old, const Coefficients& replacements)
+void updateCoefficients(Coefficients& old, const Coefficients& replacements)
 {
 	*old = *replacements;
 }
