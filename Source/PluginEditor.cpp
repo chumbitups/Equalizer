@@ -77,10 +77,12 @@ void RotarySliderWithLabels::paint(juce::Graphics& g)
 
 	auto sliderBounds = getSliderBounds();
 
-	g.setColour(Colours::red);
-	g.drawRect(getLocalBounds());
-	g.setColour(Colours::yellow);
-	g.drawRect(sliderBounds);
+
+
+	//g.setColour(Colours::red);
+	//g.drawRect(getLocalBounds());
+	//g.setColour(Colours::yellow);
+	//g.drawRect(sliderBounds);
 
 	getLookAndFeel().drawRotarySlider(g,
 		sliderBounds.getX(),
@@ -91,6 +93,34 @@ void RotarySliderWithLabels::paint(juce::Graphics& g)
 		startAng,
 		endAng,
 		*this);
+
+
+
+	auto center = sliderBounds.toFloat().getCentre();
+	auto radius = sliderBounds.getWidth() * 0.5f;
+
+	g.setColour(Colours::khaki);
+	g.setFont(getTextHeight());
+
+	auto numChoices = labels.size();
+	for (int i = 0; i < numChoices; i++)
+	{
+		auto pos = labels[i].pos;
+		jassert(0.f <= pos);
+		jassert(pos <= 1.f);
+
+		auto ang = jmap(pos, 0.f, 1.f, startAng, endAng);
+
+		auto c = center.getPointOnCircumference(radius + getTextHeight() * 0.5f + 1, ang);
+
+		Rectangle<float> r;
+		auto str = labels[i].label;
+		r.setSize(g.getCurrentFont().getStringWidth(str), getTextHeight());
+		r.setCentre(c);
+		r.setY(r.getY() + getTextHeight());
+
+		g.drawFittedText(str, r.toNearestInt(), juce::Justification::centred, 1);
+	}
 }
 
 juce::Rectangle<int> RotarySliderWithLabels::getSliderBounds() const
@@ -282,7 +312,8 @@ EqualizerAudioProcessorEditor::EqualizerAudioProcessorEditor(EqualizerAudioProce
 	lowCutSlopeSliderAttachment(audioProcessor.apvts, "LowCut Slope", lowCutSlopeSlider),
 	highCutSlopeSliderAttachment(audioProcessor.apvts, "HighCut Slope", highCutSlopeSlider)
 {
-    // Connecting changes in filters to changes in the curve
+	peakFreqSlider.labels.add({ 0.f, "20Hz" });
+	peakFreqSlider.labels.add({ 1.f, "20kHz" });
 
     for (auto* comp : getComps())
     {
