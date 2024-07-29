@@ -74,7 +74,10 @@ struct ResponseCurveComponent : juce::Component,
 private:
     EqualizerAudioProcessor& audioProcessor;
     juce::Atomic<bool> parametersChanged{ false };
+
     MonoChain monoChain;
+
+    void updateChain();
 };
 
 //==============================================================================
