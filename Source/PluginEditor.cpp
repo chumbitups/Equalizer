@@ -230,12 +230,14 @@ void ResponseCurveComponent::updateChain()
 
 void ResponseCurveComponent::paint(juce::Graphics& g)
 {
-	// Creating a response curve
+	// Creating and painting a response curve
 
 	using namespace juce;
 	g.fillAll(Colours::black);
 
-	auto responseArea = getLocalBounds();
+	g.drawImage(background, getLocalBounds().toFloat());
+
+	auto responseArea = getAnalysisArea();
 	
 	auto width = responseArea.getWidth();
 
@@ -293,10 +295,91 @@ void ResponseCurveComponent::paint(juce::Graphics& g)
 		responseCurve.lineTo(responseArea.getX() + i, map(mags[i]));
 	}
 	g.setColour(Colours::white);
-	g.drawRoundedRectangle(responseArea.toFloat(), 4.f, 1.f);
+	g.drawRoundedRectangle(getRenderArea().toFloat(), 4.f, 1.f);
 
 	g.setColour(Colours::blueviolet);
 	g.strokePath(responseCurve, PathStrokeType(2.f));
+}
+
+void ResponseCurveComponent::resized()
+{
+	//Drawing a grid with params
+
+	using namespace juce;
+	background = Image(Image::PixelFormat::RGB, getWidth(), getHeight(), true);
+
+	Graphics g(background);
+	
+	// Vertical lines are frequencies
+
+	Array<float> freqs
+	{
+		20, 30, 40, 50, 100,
+		200, 300, 400, 500, 1000,
+		2000, 3000, 4000, 5000, 10000,
+		20000
+	};
+
+	auto renderArea = getAnalysisArea();
+	auto left = renderArea.getX();
+	auto right = renderArea.getRight();
+	auto top = renderArea.getY();
+	auto bottom = renderArea.getBottom();
+	auto width = renderArea.getWidth();
+
+	Array <float> xs;
+	for (auto f : freqs)
+	{
+		auto normX = mapFromLog10(f, 20.f, 20000.f);
+		xs.add(left + width * normX);
+	}
+
+	g.setColour(Colours::dimgrey);
+	for (auto x : xs)
+	{
+		//auto normX = mapFromLog10(f, 20.f, 20000.f);
+
+		/*g.drawVerticalLine(getWidth() * normX, 0.f, getHeight());*/
+		g.drawVerticalLine(x, top, bottom);
+	}
+
+	// Horizontal lines are gains
+
+	Array<float> gain
+	{
+		-24, -12, 0, 12, 24
+	};
+
+	for (auto gDb : gain)
+	{
+		auto y = jmap(gDb, -24.f, 24.f, float(bottom), float(top));
+		/*g.drawHorizontalLine(y, 0, getWidth());*/
+		g.setColour(gDb == 0.f ? Colours::khaki : Colours::darkgrey);
+		g.drawHorizontalLine(y, left, right);
+	}
+
+	/*g.drawRect(getAnalysisArea());*/
+}
+
+juce::Rectangle<int> ResponseCurveComponent::getRenderArea()
+{
+	auto bounds = getLocalBounds();
+
+	bounds.removeFromTop(12);
+	bounds.removeFromBottom(2);
+	bounds.removeFromLeft(20);
+	bounds.removeFromRight(20);
+
+	return bounds;
+}
+
+// Render area of the grid
+juce::Rectangle<int> ResponseCurveComponent::getAnalysisArea()
+{
+	auto bounds = getRenderArea();
+	bounds.removeFromTop(4);
+	bounds.removeFromBottom(4);
+	return bounds;
 }
 
 //==============================================================================
