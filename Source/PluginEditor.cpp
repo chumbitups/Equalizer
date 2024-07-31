@@ -73,6 +73,7 @@ void LookAndFeel::drawToggleButton(juce::Graphics& g,
 	using namespace juce;
 	if (auto* pb = dynamic_cast<PowerButton*>(&toggleButton))
 	{
+		// Drawing power buttons
 		Path powerButton;
 
 		auto bounds = toggleButton.getLocalBounds();
@@ -105,6 +106,7 @@ void LookAndFeel::drawToggleButton(juce::Graphics& g,
 	}
 	else if (auto* analyzerButton = dynamic_cast<AnalyzerButton*>(&toggleButton))
 	{
+		// Drawing analyzer power button
 		auto color = ! toggleButton.getToggleState() ? Colours::dimgrey : Colours::khaki;
 
 		g.setColour(color);
@@ -112,19 +114,7 @@ void LookAndFeel::drawToggleButton(juce::Graphics& g,
 		auto bounds = toggleButton.getLocalBounds();
 		g.drawRect(bounds);
 
-		auto insetRect = bounds.reduced(4);
-
-		Path randomPath;
-
-		Random r;
-
-		randomPath.startNewSubPath(insetRect.getX(), insetRect.getY() + insetRect.getHeight() * r.nextFloat());
-
-		for (auto x = insetRect.getX() + 1; x < insetRect.getRight(); x += 2) 
-		{
-			randomPath.lineTo(x, insetRect.getY() + insetRect.getHeight() * r.nextFloat());
-		}
-		g.strokePath(randomPath, PathStrokeType(1.f));
+		g.strokePath(analyzerButton->randomPath, PathStrokeType(1.f));
 	}
 }
 
