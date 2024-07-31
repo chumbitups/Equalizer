@@ -305,11 +305,14 @@ void PathProducer::process(juce::Rectangle<float> fftBounds, double sampleRate)
 
 void ResponseCurveComponent::timerCallback()
 {
-	auto fftBounds = getAnalysisArea().toFloat();
-	auto sampleRate = audioProcessor.getSampleRate();
+	if (shouldShowFFTAnalysis)
+	{
+		auto fftBounds = getAnalysisArea().toFloat();
+		auto sampleRate = audioProcessor.getSampleRate();
 
-	leftPathProducer.process(fftBounds, sampleRate);
-	rightPathProducer.process(fftBounds, sampleRate);
+		leftPathProducer.process(fftBounds, sampleRate);
+		rightPathProducer.process(fftBounds, sampleRate);
+	}
 
 	//Updating the curve
 	if (parametersChanged.compareAndSetBool(false, true))
@@ -411,17 +414,21 @@ void ResponseCurveComponent::paint(juce::Graphics& g)
 		responseCurve.lineTo(responseArea.getX() + i, map(mags[i]));
 	}
 
-	// Skyblue left channel
-	auto leftChannelFFTPath = leftPathProducer.getPath();
-	leftChannelFFTPath.applyTransform(AffineTransform().translation(responseArea.getX(), responseArea.getY()));
-	g.setColour(Colours::skyblue);
-	g.strokePath(leftChannelFFTPath, PathStrokeType(1.f));
+	// Drawing Spectrum Analyzer if button is enabled
+	if (shouldShowFFTAnalysis)
+	{
+		// Skyblue left channel
+		auto leftChannelFFTPath = leftPathProducer.getPath();
+		leftChannelFFTPath.applyTransform(AffineTransform().translation(responseArea.getX(), responseArea.getY()));
+		g.setColour(Colours::skyblue);
+		g.strokePath(leftChannelFFTPath, PathStrokeType(1.f));
 
-	// Yellow right channel 
-	auto rightChannelFFTPath = rightPathProducer.getPath();
-	rightChannelFFTPath.applyTransform(AffineTransform().translation(responseArea.getX(), responseArea.getY()));
-	g.setColour(Colours::lightyellow);
-	g.strokePath(rightChannelFFTPath, PathStrokeType(1.f));
+		// Yellow right channel 
+		auto rightChannelFFTPath = rightPathProducer.getPath();
+		rightChannelFFTPath.applyTransform(AffineTransform().translation(responseArea.getX(), responseArea.getY()));
+		g.setColour(Colours::lightyellow);
+		g.strokePath(rightChannelFFTPath, PathStrokeType(1.f));
+	}
 
 	// White rectangle with the response curve in it
 	g.setColour(Colours::white);
@@ -661,6 +668,15 @@ EqualizerAudioProcessorEditor::EqualizerAudioProcessorEditor(EqualizerAudioProce
 
 				comp->highCutFreqSlider.setEnabled(!bypassed);
 				comp->highCutSlopeSlider.setEnabled(!bypassed);
+			}
+		};
+
+	analyzerEnabledButton.onClick = [safePtr]()
+		{
+			if (auto* comp = safePtr.getComponent())
+			{
+				auto enabled = comp->analyzerEnabledButton.getToggleState();
+				comp->responseCurveComponent.toggleAnalysisEnablement(enabled);
 			}
 		};
 
