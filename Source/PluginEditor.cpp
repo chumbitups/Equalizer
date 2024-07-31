@@ -71,36 +71,61 @@ void LookAndFeel::drawToggleButton(juce::Graphics& g,
 	bool shouldDrawButtonAsDown)
 {
 	using namespace juce;
+	if (auto* pb = dynamic_cast<PowerButton*>(&toggleButton))
+	{
+		Path powerButton;
 
-	Path powerButton;
+		auto bounds = toggleButton.getLocalBounds();
+		auto size = jmin(bounds.getWidth(), bounds.getHeight()) - 6;
+		auto r = bounds.withSizeKeepingCentre(size, size).toFloat();
 
-	auto bounds = toggleButton.getLocalBounds();
-	auto size = jmin(bounds.getWidth(), bounds.getHeight()) - 6;
-	auto r = bounds.withSizeKeepingCentre(size, size).toFloat();
+		float ang = 30.f;
 
-	float ang = 30.f;
+		size -= 6;
 
-	size -= 6;
+		powerButton.addCentredArc(r.getCentreX(),
+			r.getCentreY(),
+			size * 0.5,
+			size * 0.5,
+			0.f,
+			degreesToRadians(ang),
+			degreesToRadians(360.f - ang),
+			true);
 
-	powerButton.addCentredArc(r.getCentreX(), 
-						      r.getCentreY(), 
-		                      size * 0.5, 
-		                      size * 0.5, 
-		                      0.f, 
-		                      degreesToRadians(ang), 
-							  degreesToRadians(360.f - ang),
-							  true);
-	
-	powerButton.startNewSubPath(r.getCentreX(), r.getY());
-	powerButton.lineTo(r.getCentre());
+		powerButton.startNewSubPath(r.getCentreX(), r.getY());
+		powerButton.lineTo(r.getCentre());
 
-	PathStrokeType pst(2.f, PathStrokeType::curved);
+		PathStrokeType pst(2.f, PathStrokeType::curved);
 
-	auto color = toggleButton.getToggleState() ? Colours::dimgrey : Colours::khaki;
+		auto color = toggleButton.getToggleState() ? Colours::dimgrey : Colours::khaki;
 
-	g.setColour(color);
-	g.strokePath(powerButton, pst);
-	g.drawEllipse(r, 2);
+		g.setColour(color);
+		g.strokePath(powerButton, pst);
+		g.drawEllipse(r, 2);
+	}
+	else if (auto* analyzerButton = dynamic_cast<AnalyzerButton*>(&toggleButton))
+	{
+		auto color = ! toggleButton.getToggleState() ? Colours::dimgrey : Colours::khaki;
+
+		g.setColour(color);
+
+		auto bounds = toggleButton.getLocalBounds();
+		g.drawRect(bounds);
+
+		auto insetRect = bounds.reduced(4);
+
+		Path randomPath;
+
+		Random r;
+
+		randomPath.startNewSubPath(insetRect.getX(), insetRect.getY() + insetRect.getHeight() * r.nextFloat());
+
+		for (auto x = insetRect.getX() + 1; x < insetRect.getRight(); x += 2) 
+		{
+			randomPath.lineTo(x, insetRect.getY() + insetRect.getHeight() * r.nextFloat());
+		}
+		g.strokePath(randomPath, PathStrokeType(1.f));
+	}
 }
 
 //==============================================================================
@@ -610,6 +635,7 @@ EqualizerAudioProcessorEditor::EqualizerAudioProcessorEditor(EqualizerAudioProce
 	peakBypassButton.setLookAndFeel(&lnf);
 	lowCutBypassButton.setLookAndFeel(&lnf);
 	highCutBypassButton.setLookAndFeel(&lnf);
+	analyzerEnabledButton.setLookAndFeel(&lnf);
 
     setSize (600, 480);
 }
@@ -635,8 +661,19 @@ void EqualizerAudioProcessorEditor::resized()
     // This is generally where you'll want to lay out the positions of any
     // subcomponents in your editor..
 
-	// Response curve area 
+	// Analyzer Enabled button area 
     auto bounds = getLocalBounds();
+
+	auto analyzerEnabledArea = bounds.removeFromTop(25);
+	analyzerEnabledArea.setWidth(100);
+	analyzerEnabledArea.setX(5);
+	analyzerEnabledArea.removeFromTop(2);
+
+	analyzerEnabledButton.setBounds(analyzerEnabledArea);
+
+	bounds.removeFromTop(5);
+
+	// Response curve area
 	float hRatio = 26.f / 100.f;
     auto responseArea = bounds.removeFromTop(bounds.getHeight() * hRatio);
 
